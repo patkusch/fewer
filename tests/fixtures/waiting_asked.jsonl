@@ -1,0 +1,3 @@
+{"type": "user", "sessionId": "s2", "timestamp": "2026-01-01T10:00:00Z", "cwd": "/x/beta", "message": {"role": "user", "content": "go"}}
+{bad json
+{"type": "assistant", "sessionId": "s2", "timestamp": "2026-01-01T10:02:00Z", "cwd": "/x/beta", "message": {"role": "assistant", "content": [{"type": "text", "text": "Which option do you want?"}], "stop_reason": "end_turn"}}

@@ -1,0 +1,2 @@
+{"type": "user", "sessionId": "s1", "timestamp": "2026-01-01T10:00:00Z", "cwd": "/x/alpha", "message": {"role": "user", "content": "do the thing"}}
+{"type": "assistant", "sessionId": "s1", "timestamp": "2026-01-01T10:05:00Z", "cwd": "/x/alpha", "message": {"role": "assistant", "content": [{"type": "text", "text": "All done. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}], "stop_reason": "end_turn"}}

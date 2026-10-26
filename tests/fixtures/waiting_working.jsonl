@@ -1,0 +1,3 @@
+{"type": "user", "sessionId": "s4", "timestamp": "2026-01-01T10:00:00Z", "cwd": "/x/alpha", "message": {"role": "user", "content": "go"}}
+{"type": "assistant", "sessionId": "s4", "timestamp": "2026-01-01T10:09:00Z", "cwd": "/x/alpha", "message": {"role": "assistant", "content": [{"type": "text", "text": "on it"}], "stop_reason": "tool_use"}}
+{"type": "user", "sessionId": "s4", "timestamp": "2026-01-01T10:10:00Z", "cwd": "/x/alpha", "message": {"role": "user", "content": [{"type": "tool_result", "content": "ok"}]}}
