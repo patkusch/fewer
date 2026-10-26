@@ -1,0 +1,10 @@
+{"type": "user", "timestamp": "2026-01-05T10:00:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "user", "content": "synthetic"}, "origin": {"kind": "human"}}
+{"type": "assistant", "timestamp": "2026-01-05T10:01:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "assistant", "content": [{"type": "text", "text": "x"}]}}
+not json{
+{"type": "user", "timestamp": "2026-01-05T10:02:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result"}]}}
+{"type": "user", "timestamp": "2026-01-05T10:03:00Z", "sessionId": "B", "isSidechain": false, "message": {"role": "user", "content": "synthetic"}, "origin": {"kind": "human"}}
+{"type": "assistant", "timestamp": "2026-01-05T10:05:00Z", "sessionId": "B", "isSidechain": false, "message": {"role": "assistant", "content": [{"type": "text", "text": "x"}]}}
+{"type": "user", "timestamp": "2026-01-05T10:06:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "user", "content": "synthetic"}, "origin": {"kind": "human"}}
+{"type": "assistant", "timestamp": "2026-01-05T10:07:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "assistant", "content": [{"type": "text", "text": "x"}]}}
+{"type": "user", "timestamp": "2026-01-05T10:20:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "user", "content": "synthetic"}, "origin": {"kind": "human"}}
+{"type": "assistant", "timestamp": "2026-01-05T11:30:00Z", "sessionId": "A", "isSidechain": false, "message": {"role": "assistant", "content": [{"type": "text", "text": "x"}]}}
