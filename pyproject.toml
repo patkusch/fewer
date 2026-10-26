@@ -1,0 +1,12 @@
+[project]
+name = "fewer"
+version = "0.1.0"
+description = "Are you running too many agents? Measure it from your own Claude Code sessions."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+fewer = "fewer.cli:main"
+
+[tool.setuptools]
+packages = ["fewer"]
