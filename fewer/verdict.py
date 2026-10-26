@@ -11,6 +11,25 @@ Two limits decide the speed:
     N / (agent + h) finished tasks per second;
   * you: you can only finish 1 / h reviews per second, however many agents wait.
 Throughput is whichever limit is lower. That is exact for this model.
+
+Two models are available, chosen with recommend(..., model=...):
+
+  * "variable" (the default): the machine-repairman model, one person and N
+    agents where agent time and review time both vary from task to task
+    (exponential-ish: many short ones, a few long ones). It is a finite-source
+    M/M/1//N queue. Birth-death solution: with rho = h / agent, the chance of
+    n agents waiting for you is P_n = P_0 * N!/(N-n)! * rho^n, and
+    throughput X(N) = (1 - P_0) / h. Exact, no randomness.
+  * "steady": the deterministic model above (every task takes exactly the
+    average). It is the OPTIMISTIC UPPER BOUND: with no variability, agents
+    never bunch up waiting for you and you are never idle by bad luck, so it
+    always shows at least as much work as the variable model.
+
+ASSUMPTION: the 120 s switch cost is a placeholder. We found no study that
+measures it for people reviewing agents. Work on attention residue (Mark et
+al, Leroy) shows that switching has a cost and gives its direction, not a
+number to use here. Pass your own figure, or a range, to see how much the
+answer depends on it.
 """
 import math
 
@@ -18,6 +37,11 @@ MAX_AGENTS = 8
 TARGET_SHARE = 0.90
 DEFAULT_SWITCH_COST = 120
 SPEEDUPS = (0.5, 1, 2, 4)
+MODELS = ("variable", "steady")
+ASSUMPTION_NOTE = ("The %d s cost of jumping between agents is an ASSUMPTION: "
+                   "we found no study measuring it for people reviewing agents. "
+                   "Research on attention residue (Mark et al, Leroy) only says "
+                   "the cost is real, not how big. Use your own figure if you can.")
 
 
 def _check(name, value):
@@ -43,8 +67,39 @@ def _row(n, agent, human, switch):
             "human_busy": busy, "human_switching": jumping}
 
 
-def _table(agent, human, switch):
-    return [_row(n, agent, human, switch) for n in range(1, MAX_AGENTS + 1)]
+def _row_variable(n, agent, human, switch):
+    """Exact machine-repairman (finite-source M/M/1//N) numbers for n agents."""
+    sw = switch if n > 1 else 0.0
+    per_review = human + sw
+    if agent + per_review == 0:
+        return {"agents": n, "tasks_per_hour": 0.0, "human_busy": 0.0,
+                "human_switching": 0.0}
+    if per_review == 0:
+        rate = n / agent  # you are never the bottleneck
+    else:
+        rate = None
+        if agent == 0:
+            rate = 1.0 / per_review  # you are always busy
+        else:
+            try:
+                rho = per_review / agent
+                term, tail = 1.0, 0.0  # tail = sum of P_n/P_0 for n >= 1
+                for k in range(1, n + 1):
+                    term *= (n - k + 1) * rho
+                    tail += term
+                # X = (1 - P0) / per_review, with 1 - P0 = tail / (1 + tail)
+                rate = (tail / (1.0 + tail)) / per_review
+            except OverflowError:
+                rate = 1.0 / per_review
+    busy = min(1.0, rate * per_review)
+    jumping = min(1.0, rate * sw)
+    return {"agents": n, "tasks_per_hour": rate * 3600,
+            "human_busy": busy, "human_switching": jumping}
+
+
+def _table(agent, human, switch, model="variable"):
+    row = _row_variable if model == "variable" else _row
+    return [row(n, agent, human, switch) for n in range(1, MAX_AGENTS + 1)]
 
 
 def _pick(table):
@@ -75,9 +130,41 @@ def _verdict(rec, share, capped):
     return text
 
 
+def _range_line(recs):
+    lo, hi = min(recs), max(recs)
+    if lo == hi:
+        return (f"{_plural(lo)}, and that holds whether jumping between agents "
+                f"costs you little or a lot.")
+    return (f"{lo} to {hi} agents; the answer moves with how costly jumping "
+            f"is for you.")
+
+
 def recommend(mean_agent_seconds, mean_human_review_seconds,
-              switch_cost_seconds=DEFAULT_SWITCH_COST, current_agents=None):
-    """Return the recommended number of agents plus the numbers behind it."""
+              switch_cost_seconds=DEFAULT_SWITCH_COST, current_agents=None,
+              switch_cost_range=None, model="variable"):
+    """Return the recommended number of agents plus the numbers behind it.
+
+    model="variable" (default) is the exact machine-repairman model: tasks and
+    reviews vary in length, so agents sometimes queue for you and you
+    sometimes wait for them. model="steady" is the deterministic model where
+    everything takes exactly the average; it is the optimistic upper bound
+    and never shows less work than "variable".
+
+    switch_cost_range=(low, base, high) in seconds also returns the
+    recommendation at each value under "switch_cost_range", plus a plain
+    sentence on how sure we are under "confidence". The default 120 s switch
+    cost is an ASSUMPTION (see the module doc and "switch_cost_note").
+    """
+    if model not in MODELS:
+        raise ValueError(f"model must be one of {MODELS}")
+    if switch_cost_range is not None:
+        if (not isinstance(switch_cost_range, (tuple, list))
+                or len(switch_cost_range) != 3):
+            raise ValueError("switch_cost_range must be (low, base, high)")
+        for v in switch_cost_range:
+            _check("switch_cost_range value", v)
+        if not (switch_cost_range[0] <= switch_cost_range[1] <= switch_cost_range[2]):
+            raise ValueError("switch_cost_range must go from low to high")
     _check("mean_agent_seconds", mean_agent_seconds)
     _check("mean_human_review_seconds", mean_human_review_seconds)
     _check("switch_cost_seconds", switch_cost_seconds)
@@ -87,7 +174,7 @@ def recommend(mean_agent_seconds, mean_human_review_seconds,
             raise ValueError("current_agents must be a whole number, 1 or more")
 
     a, h, s = float(mean_agent_seconds), float(mean_human_review_seconds), float(switch_cost_seconds)
-    table = _table(a, h, s)
+    table = _table(a, h, s, model)
     rec, best = _pick(table)
     rec_rate = table[rec - 1]["tasks_per_hour"]
     share = (rec_rate / best) if best > 0 else 1.0
@@ -122,11 +209,30 @@ def recommend(mean_agent_seconds, mean_human_review_seconds,
 
     sensitivity = []
     for f in SPEEDUPS:
-        r, _b = _pick(_table(a / f, h, s))
+        r, _b = _pick(_table(a / f, h, s, model))
         sensitivity.append({"agent_speed": f, "agent_seconds": a / f,
                             "recommended_agents": r})
 
+    sc_range = confidence = None
+    if switch_cost_range is not None:
+        sc_range = {}
+        for name, sc in zip(("low", "base", "high"), switch_cost_range):
+            r, _b = _pick(_table(a, h, float(sc), model))
+            sc_range[name] = {"switch_cost_seconds": sc, "recommended_agents": r}
+        confidence = _range_line([v["recommended_agents"] for v in sc_range.values()])
+        verdict += " How sure are we? " + confidence
+
+    if s == DEFAULT_SWITCH_COST:
+        note = ASSUMPTION_NOTE % DEFAULT_SWITCH_COST
+    else:
+        note = (f"The {s:g} s cost of jumping between agents is the figure you "
+                f"gave. We know of no study that measures it for reviewing agents.")
+
     return {
+        "model": model,
+        "switch_cost_range": sc_range,
+        "confidence": confidence,
+        "switch_cost_note": note,
         "recommended_agents": rec,
         "best_agents": best_n,
         "share_of_best": share,

@@ -1,7 +1,14 @@
 import math
 import unittest
 
-from fewer.verdict import recommend, MAX_AGENTS
+from fewer import verdict as _verdict_module
+from fewer.verdict import MAX_AGENTS
+
+
+def recommend(*args, **kwargs):
+    """The original tests were written for the deterministic model."""
+    kwargs.setdefault("model", "steady")
+    return _verdict_module.recommend(*args, **kwargs)
 
 
 class TestRecommend(unittest.TestCase):
@@ -137,6 +144,100 @@ class TestRecommend(unittest.TestCase):
 
     def test_deterministic(self):
         self.assertEqual(recommend(777, 55, 90, 4), recommend(777, 55, 90, 4))
+
+
+class TestVariableModelAndRange(unittest.TestCase):
+    def rec(self, *a, **k):
+        return _verdict_module.recommend(*a, **k)
+
+    def test_variable_is_default(self):
+        self.assertEqual(self.rec(600, 120)["model"], "variable")
+        self.assertEqual(self.rec(600, 120), self.rec(600, 120, model="variable"))
+        self.assertEqual(self.rec(600, 120, model="steady")["model"], "steady")
+
+    def test_bad_model(self):
+        with self.assertRaises(ValueError):
+            self.rec(600, 120, model="fast")
+
+    def test_hand_computed_two_agents(self):
+        # a=600, review=100, N=2 (s=0): rho=1/6. weights 1, 2/6, 2/36
+        # P0 = 1/(1+1/3+1/18) = 18/25 -> X = (7/25)/100 per second
+        r = self.rec(600, 100, 0)
+        t = {x["agents"]: x["tasks_per_hour"] for x in r["table"]}
+        self.assertAlmostEqual(t[2], 3600 * (7 / 25) / 100)
+        self.assertAlmostEqual(t[1], 3600 * (1 / 7) / 100)  # rho/(1+rho)
+
+    def test_variable_never_beats_steady(self):
+        for a, h, s in [(600, 120, 120), (1800, 120, 30), (60, 600, 0),
+                        (300, 300, 300), (5, 1, 0), (1e6, 3, 7)]:
+            v = self.rec(a, h, s, model="variable")["table"]
+            d = self.rec(a, h, s, model="steady")["table"]
+            for rv, rd in zip(v, d):
+                self.assertLessEqual(rv["tasks_per_hour"], rd["tasks_per_hour"] + 1e-9)
+                self.assertTrue(0 <= rv["human_busy"] <= 1)
+                self.assertLessEqual(rv["human_switching"], rv["human_busy"] + 1e-9)
+
+    def test_variable_grows_with_agents_without_switch_cost(self):
+        t = [x["tasks_per_hour"] for x in self.rec(700, 100, 0)["table"]]
+        self.assertEqual(t, sorted(t))
+
+    def test_variable_needs_at_least_as_many_agents(self):
+        for a, h, s in [(600, 120, 120), (1800, 120, 30), (900, 100, 0)]:
+            self.assertGreaterEqual(self.rec(a, h, s)["recommended_agents"],
+                                    self.rec(a, h, s, model="steady")["recommended_agents"])
+
+    def test_variable_edge_cases(self):
+        self.assertEqual(self.rec(0, 0, 0)["recommended_agents"], 1)
+        self.assertEqual(self.rec(0, 300)["recommended_agents"], 1)
+        self.assertEqual(self.rec(1e12, 1)["recommended_agents"], MAX_AGENTS)
+        self.assertEqual(self.rec(1, 1e12)["recommended_agents"], 1)
+        self.assertEqual(self.rec(600, 0, 0)["recommended_agents"], MAX_AGENTS)
+
+    def test_range_returns_three_answers(self):
+        r = self.rec(1200, 100, switch_cost_range=(30, 120, 300))
+        sc = r["switch_cost_range"]
+        self.assertEqual(list(sc), ["low", "base", "high"])
+        self.assertEqual([sc[k]["switch_cost_seconds"] for k in sc], [30, 120, 300])
+        self.assertEqual(sc["base"]["recommended_agents"], r["recommended_agents"])
+        self.assertGreaterEqual(sc["low"]["recommended_agents"],
+                                sc["high"]["recommended_agents"])
+        self.assertIn("How sure are we?", r["verdict"])
+        self.assertIn("jumping", r["confidence"])
+
+    def test_range_sentence_when_answer_moves(self):
+        r = self.rec(1200, 100, switch_cost_range=(0, 120, 600))
+        sc = r["switch_cost_range"]
+        lo, hi = sc["high"]["recommended_agents"], sc["low"]["recommended_agents"]
+        self.assertLess(lo, hi)
+        self.assertIn(f"{lo} to {hi} agents; the answer moves with how costly "
+                      f"jumping is for you", r["confidence"])
+
+    def test_range_sentence_when_answer_holds(self):
+        r = self.rec(60, 600, switch_cost_range=(30, 120, 300))
+        self.assertIn("1 agent", r["confidence"])
+        self.assertIn("holds", r["confidence"])
+
+    def test_no_range_by_default(self):
+        r = self.rec(600, 120)
+        self.assertIsNone(r["switch_cost_range"])
+        self.assertIsNone(r["confidence"])
+
+    def test_bad_range(self):
+        for bad in ((30, 120), (300, 120, 30), (-1, 2, 3), "abc", (1, 2, "3"), 5):
+            with self.assertRaises(ValueError):
+                self.rec(600, 120, switch_cost_range=bad)
+
+    def test_assumption_labelled(self):
+        note = self.rec(600, 120)["switch_cost_note"]
+        self.assertIn("ASSUMPTION", note)
+        self.assertNotIn("ASSUMPTION", self.rec(600, 120, 45)["switch_cost_note"])
+
+    def test_no_jargon_in_new_text(self):
+        r = self.rec(1200, 100, switch_cost_range=(30, 120, 300))
+        text = (r["verdict"] + r["confidence"]).lower()
+        for word in ("utilisation", "utilization", "queue", "queueing",
+                     "throughput", "m/m/1", "exponential"):
+            self.assertNotIn(word, text)
 
 
 if __name__ == "__main__":
