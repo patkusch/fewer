@@ -4,9 +4,15 @@ import os
 import sys
 from statistics import mean
 
+from .handoff import parse_feedback
 from .metrics import compute
-from .transcripts import load_timeline
+from .report import build_report
+from .sources import load_all
 from .verdict import recommend
+from .waiting import format_waiting, waiting
+
+CLAUDE = os.path.expanduser("~/.claude/projects")
+CODEX = os.path.expanduser("~/.codex/sessions")
 
 
 def report(timeline):
@@ -27,11 +33,30 @@ def report(timeline):
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="fewer", description=__doc__)
-    p.add_argument("path", nargs="?", default=os.path.expanduser("~/.claude/projects"),
-                   help="folder of Claude Code transcripts (default: ~/.claude/projects)")
+    p.add_argument("--claude", default=CLAUDE, help="Claude Code transcripts folder")
+    p.add_argument("--codex", default=CODEX, help="Codex sessions folder (optional)")
     p.add_argument("--since", help="only look at sessions after this date, e.g. 2026-10-01")
+    sub = p.add_subparsers(dest="cmd")
+    sub.add_parser("report", help="print the answer (default)")
+    h = sub.add_parser("html", help="write a one-page report you can open in a browser")
+    h.add_argument("-o", "--out", default="fewer-report.html")
+    sub.add_parser("waiting", help="list agents waiting on you, longest first")
+    f = sub.add_parser("feedback", help="turn a review page's copied feedback into a note for the agent")
+    f.add_argument("file", help="file holding the copied feedback (JSON)")
     a = p.parse_args(argv)
-    print(report(load_timeline(a.path, since=a.since)))
+
+    if a.cmd == "waiting":
+        lines = format_waiting(waiting(a.claude))
+        print(lines if isinstance(lines, str) else "\n".join(lines))
+    elif a.cmd == "feedback":
+        with open(a.file) as fh:
+            print(parse_feedback(fh.read()))
+    elif a.cmd == "html":
+        with open(a.out, "w") as fh:
+            fh.write(build_report(load_all(a.claude, a.codex, since=a.since)))
+        print(f"Wrote {a.out}")
+    else:
+        print(report(load_all(a.claude, a.codex, since=a.since)))
     return 0
 
 

@@ -14,8 +14,13 @@ It reads your Claude Code session history on your machine (nothing is sent anywh
 - how many agents would get you nearly all the work with the least jumping.
 
 ```
-python3 -m fewer.cli --since 2026-10-01
+python3 -m fewer.cli --since 2026-10-01          # the answer
+python3 -m fewer.cli html -o report.html          # a one-page report with charts
+python3 -m fewer.cli waiting                      # agents waiting on you, longest first
+python3 -m fewer.cli feedback copied.json         # review-page feedback -> note for the agent
 ```
+
+It reads Claude Code logs, and Codex logs too if they are there (the Codex format is only partly checked, see RESEARCH.md).
 
 Example output:
 
@@ -39,6 +44,8 @@ The post's other idea: instead of chatting back and forth, the agent hands you o
 
 - The timings are guesses from timestamps: a gap of over 10 minutes counts as you walking away.
 - It only sees Claude Code sessions.
-- The 90% target and the cap of 8 agents are plain constants in `fewer/verdict.py`.
+- The answer is shown as a range (jumps costing 30 s, 2 min or 5 min) because the 2-minute figure is an assumption, not a measurement. The 90% target and the cap of 8 agents are plain constants in `fewer/verdict.py`.
 
 Tests: `python3 -m unittest discover -s tests`
+
+What already exists and what is missing: [RESEARCH.md](RESEARCH.md).
