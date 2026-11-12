@@ -49,3 +49,7 @@ The post's other idea: instead of chatting back and forth, the agent hands you o
 Tests: `python3 -m unittest discover -s tests`
 
 What already exists and what is missing: [RESEARCH.md](RESEARCH.md).
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
