@@ -1,4 +1,3 @@
-import re
 import unittest
 from datetime import datetime
 from fewer.model import Timeline, Turn

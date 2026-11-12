@@ -111,7 +111,7 @@ def build_report(timeline):
     m = compute(timeline)
     agent = [t.end - t.start for t in turns if t.kind == "agent"]
     human = [t.end - t.start for t in turns if t.kind == "human"]
-    parts = [f"<h1>Are you running too many agents?</h1>"]
+    parts = ["<h1>Are you running too many agents?</h1>"]
     if not agent or not human or not m["days"]:
         parts.append('<section><p class="verdict">Not enough sessions to say anything yet.</p>'
                      '<p class="mut">Come back after a few days of normal work.</p></section>')

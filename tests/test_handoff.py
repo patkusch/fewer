@@ -1,5 +1,4 @@
 import json
-import re
 import unittest
 
 from fewer.handoff import build_handoff, parse_feedback
