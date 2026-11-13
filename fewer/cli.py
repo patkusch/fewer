@@ -4,6 +4,7 @@ import os
 import sys
 from statistics import mean
 
+from . import __version__
 from .handoff import parse_feedback
 from .metrics import compute
 from .report import build_report
@@ -33,6 +34,7 @@ def report(timeline):
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="fewer", description=__doc__)
+    p.add_argument("--version", action="version", version=f"fewer {__version__}")
     p.add_argument("--claude", default=CLAUDE, help="Claude Code transcripts folder")
     p.add_argument("--codex", default=CODEX, help="Codex sessions folder (optional)")
     p.add_argument("--since", help="only look at sessions after this date, e.g. 2026-10-01")
