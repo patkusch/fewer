@@ -1,5 +1,7 @@
 # fewer
 
+[![ci](https://github.com/patkusch/fewer/actions/workflows/ci.yml/badge.svg)](https://github.com/patkusch/fewer/actions/workflows/ci.yml)
+
 Are you running too many agents?
 
 A recent post, [ETOOMANYTHINGS? Run Fewer Agents](https://blog.exe.dev/etoomanythings), argues that people start extra agents just to fill the time while one is slow, and that juggling them wears out the person in the middle. `fewer` checks that against your own work.
