@@ -55,3 +55,7 @@ What already exists and what is missing: [RESEARCH.md](RESEARCH.md).
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+[Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
